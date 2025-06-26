@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { TrendingUp, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface AuthScreenProps {
   mode: 'login' | 'signup';
-  onLogin: (userData: { name: string; email: string }) => void;
   onToggleMode: () => void;
 }
 
@@ -14,7 +14,9 @@ interface FormErrors {
   confirmPassword?: string;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleMode }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onToggleMode }) => {
+  const { login, register, loading, error, clearError } = useAuth();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -25,7 +27,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,16 +81,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      onLogin({ 
-        name: formData.name || formData.email.split('@')[0], 
-        email: formData.email 
-      });
-      setIsSubmitting(false);
-    }, 1000);
+    clearError();
+
+    try {
+      if (mode === 'signup') {
+        await register(formData.name, formData.email, formData.password);
+      } else {
+        await login(formData.email, formData.password);
+      }
+    } catch (err) {
+      // Error is handled by the useAuth hook
+      console.error('Authentication error:', err);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +108,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
         ...prev,
         [name]: undefined
       }));
+    }
+
+    // Clear global error when user starts typing
+    if (error) {
+      clearError();
     }
   };
 
@@ -150,6 +158,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
             </p>
           </div>
 
+          {/* Global Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field - Only for Signup */}
             {mode === 'signup' && (
@@ -166,6 +184,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
                     onChange={handleInputChange}
                     className={getInputClassName('name')}
                     placeholder="Enter your full name"
+                    disabled={loading}
                   />
                   {formData.name && !errors.name && (
                     <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
@@ -194,6 +213,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
                   onChange={handleInputChange}
                   className={getInputClassName('email')}
                   placeholder="Enter your email address"
+                  disabled={loading}
                 />
                 {formData.email && !errors.email && validateEmail(formData.email) && (
                   <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
@@ -221,11 +241,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
                   onChange={handleInputChange}
                   className={getInputClassName('password')}
                   placeholder="Enter your password"
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -258,11 +280,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
                     onChange={handleInputChange}
                     className={getInputClassName('confirmPassword')}
                     placeholder="Confirm your password"
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+                    disabled={loading}
                   >
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -279,10 +303,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={loading}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {isSubmitting ? (
+              {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   {mode === 'login' ? 'Signing In...' : 'Creating Account...'}
@@ -307,7 +331,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, onLogin, onToggleM
             </div>
             <button
               onClick={onToggleMode}
-              className="mt-4 text-blue-600 font-semibold hover:text-blue-700 transition-colors hover:underline"
+              disabled={loading}
+              className="mt-4 text-blue-600 font-semibold hover:text-blue-700 transition-colors hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {mode === 'login' ? 'Create Account' : 'Sign In'}
             </button>

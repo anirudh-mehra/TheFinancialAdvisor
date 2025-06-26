@@ -3,52 +3,34 @@ import { AuthScreen } from './components/AuthScreen';
 import { FinancialAssessment } from './components/FinancialAssessment';
 import { Dashboard } from './components/Dashboard';
 import { Header } from './components/Header';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  assessmentCompleted?: boolean;
-  assessmentData?: any;
-}
+import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading, logout } = useAuth();
   const [isAuthMode, setIsAuthMode] = useState<'login' | 'signup'>('login');
-
-  const handleLogin = (userData: { name: string; email: string }) => {
-    setUser({
-      id: Date.now().toString(),
-      ...userData,
-      assessmentCompleted: false
-    });
-  };
-
-  const handleAssessmentComplete = (assessmentData: any) => {
-    if (user) {
-      setUser({
-        ...user,
-        assessmentCompleted: true,
-        assessmentData
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-  };
 
   const toggleAuthMode = () => {
     setIsAuthMode(isAuthMode === 'login' ? 'signup' : 'login');
   };
 
-  // Show auth screen if no user
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth screen if no user is logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <AuthScreen 
           mode={isAuthMode}
-          onLogin={handleLogin}
           onToggleMode={toggleAuthMode}
         />
       </div>
@@ -57,13 +39,13 @@ function App() {
 
   // Show assessment if user hasn't completed it
   if (!user.assessmentCompleted) {
-    return <FinancialAssessment onComplete={handleAssessmentComplete} />;
+    return <FinancialAssessment />;
   }
 
   // Show dashboard if user is logged in and assessment is complete
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={logout} />
       <Dashboard user={user} />
     </div>
   );

@@ -13,6 +13,7 @@ import {
   Zap,
   AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface AssessmentData {
   // Personal Info
@@ -37,11 +38,8 @@ interface AssessmentData {
   experienceLevel: string;
 }
 
-interface FinancialAssessmentProps {
-  onComplete: (data: AssessmentData) => void;
-}
-
-export const FinancialAssessment: React.FC<FinancialAssessmentProps> = ({ onComplete }) => {
+export const FinancialAssessment: React.FC = () => {
+  const { saveAssessment, loading, error } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [assessmentData, setAssessmentData] = useState<AssessmentData>({
     age: '',
@@ -68,7 +66,15 @@ export const FinancialAssessment: React.FC<FinancialAssessmentProps> = ({ onComp
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      onComplete(assessmentData);
+      handleComplete();
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      await saveAssessment(assessmentData);
+    } catch (err) {
+      console.error('Failed to save assessment:', err);
     }
   };
 
@@ -459,12 +465,22 @@ export const FinancialAssessment: React.FC<FinancialAssessmentProps> = ({ onComp
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           {renderProgressBar()}
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+          
           {renderCurrentStep()}
 
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
             <button
               onClick={handlePrevious}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || loading}
               className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -473,11 +489,20 @@ export const FinancialAssessment: React.FC<FinancialAssessmentProps> = ({ onComp
 
             <button
               onClick={handleNext}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || loading}
               className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] disabled:transform-none"
             >
-              {currentStep === totalSteps ? 'Complete Assessment' : 'Next'}
-              <ArrowRight className="w-5 h-5" />
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </div>
+              ) : (
+                <>
+                  {currentStep === totalSteps ? 'Complete Assessment' : 'Next'}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </div>
         </div>
