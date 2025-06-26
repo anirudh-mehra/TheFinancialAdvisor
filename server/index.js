@@ -17,10 +17,7 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 
 // Initialize SQLite database
@@ -82,22 +79,6 @@ const validatePassword = (password) => {
 };
 
 // Routes
-
-// Health check - this handles the root route
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'InvestSmart API Server',
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    endpoints: [
-      'POST /api/auth/register',
-      'POST /api/auth/login',
-      'GET /api/auth/profile',
-      'POST /api/assessment',
-      'POST /api/auth/verify'
-    ]
-  });
-});
 
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
@@ -344,10 +325,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 InvestSmart API Server running on port ${PORT}`);
-  console.log(`📊 Database path: ${dbPath}`);
-  console.log(`🌐 Frontend should be accessible at: http://localhost:5173`);
-  console.log(`🔧 API endpoints available at: http://localhost:${PORT}/api`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Database path: ${dbPath}`);
 });
 
 // Graceful shutdown

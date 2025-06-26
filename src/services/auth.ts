@@ -23,8 +23,7 @@ interface RegisterData {
   password: string;
 }
 
-// Use relative URL for API calls - Vite proxy will handle routing to backend
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 class AuthService {
   private token: string | null = null;
